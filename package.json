@@ -1,0 +1,12 @@
+{
+  "name": "2048",
+  "version": "1.0.0",
+  "description": "Remake of 2048 game.",
+  "main": "index.js",
+  "repository": "https://github.com/solomon-fibonacci/2048.git",
+  "author": "Solomon Omojola <omojolasolomon@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^24.8.0"
+  }
+}
