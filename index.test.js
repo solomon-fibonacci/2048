@@ -9,4 +9,9 @@ describe('Tests for the Board class', () => {
     const board = new Board(4)
     expect(board.score).toBe(0)
   })
+  it('Has at least 2 tiles left after first left move', () => {
+    const board = new Board(4)
+    board.move('left')
+    expect(Object.keys(board.coordinates).length).toBeGreaterThanOrEqual(2)
+  })
 })
