@@ -8,10 +8,11 @@ export class Board {
     this.score = 0
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
-        const coord = this.getCoord({row: i, column: j})
+        const rc = { row: i, column: j }
+        const coord = this.getCoord(rc)
         this.emptyCoordinates[coord] = {
           key: coord,
-          value: 0,
+          value: 0
         }
       }
     }
@@ -19,51 +20,55 @@ export class Board {
   }
 
   getCoord(rowColumn) {
-    const {row, column} = rowColumn
-    return JSON.stringify({row, column})
+    const { row, column } = rowColumn
+    return JSON.stringify({ row, column })
   }
 
   getCurrentCoord(i, j, direction) {
     if (this.isVertical(direction)) {
-      return this.getCoord({row: j, column: i})
+      return this.getCoord({ row: j, column: i })
     }
-    return this.getCoord({row: i, column: j})
+    return this.getCoord({ row: i, column: j })
   }
 
   addNewTile(n = 1) {
     while (n) {
       const keys = Object.keys(this.emptyCoordinates)
-      if (!keys.length) {
-        this.gameOver()
-      }
       const randomKey = keys[Math.floor(Math.random() * keys.length)]
+      console.log(randomKey)
       this.coordinates[randomKey] = {
         key: randomKey,
 
         value: 2,
-        isDerived: false,
+        isDerived: false
       }
       delete this.emptyCoordinates[randomKey]
+      console.log(Object.keys(this.emptyCoordinates))
       n--
     }
+    if (!Object.keys(this.emptyCoordinates).length) {
+      this.checkPulse()
+    }
+  }
 
   gameOver() {
     this.gameOverCallback(this)
   }
 
-  getInitialWall(direction) {
+  initializeWall(direction) {
+    this.lastWall = -1
     if (direction === 'up' || direction === 'left') {
-      return 0
+      this.wall = 0
     } else {
-      return this.size - 1
+      this.wall = this.size - 1
     }
   }
 
   adjustIndexForDirection(y, x, direction) {
     if (direction === 'down' || direction === 'right') {
-      return {i: this.size - 1 - y, j: this.size - 1 - x}
+      return { i: this.size - 1 - y, j: this.size - 1 - x }
     } else {
-      return {i: y, j: x}
+      return { i: y, j: x }
     }
   }
 
@@ -71,36 +76,64 @@ export class Board {
     if (!this.validMoves.includes(direction)) {
       throw new Error('Invalid move')
     }
-
+    this.direction = direction
+    this.touched = false
     for (let y = 0; y < this.size; y++) {
-      let wall = this.getInitialWall(direction)
+      this.initializeWall(direction)
       for (let x = 0; x < this.size; x++) {
-        const {i, j} = this.adjustIndexForDirection(y, x, direction)
+        const { i, j } = this.adjustIndexForDirection(y, x, direction)
         const currentCoord = this.getCurrentCoord(i, j, direction)
         const tile = this.coordinates[currentCoord]
-        const lastTile = this.getLastTile(i, wall, direction)
-
         if (tile) {
-          if (this.shouldNotMove(tile, lastTile, wall, direction)) {
-            wall = this.moveWall(wall)
+          tile.isDerived = false
+          const lastTile = this.getLastTile(i, direction)
+          if (this.shouldNotMove(tile, lastTile, direction)) {
+            this.moveWall(direction)
           } else {
+            if (!this.touched) {
+              if (this.isInCheckMode) {
+                this.isInCheckMode = false
+                return
+              }
+              this.touched = true
+            }
             if (this.shouldCollapse(tile, lastTile)) {
               this.collapse(tile, lastTile)
             } else {
-              this.pushToWall(tile, wall, direction)
+              this.pushToWall(tile, direction)
             }
           }
         }
       }
     }
+    if (this.isInCheckMode) {
+      this.gameOver()
+    } else {
+      if (this.touched) {
+        this.addNewTile()
+      } else {
+        this.checkPulse()
+      }
+    }
 
-    this.addNewTile()
-    return {occupied: this.coordinates, empty: this.emptyCoordinates}
+    return { occupied: this.coordinates, empty: this.emptyCoordinates }
   }
 
-  shouldNotMove(tile, lastTile, wall, direction) {
+  checkPulse() {
+    this.coordBackup = Object.assign({}, this.coordinates)
+    if (!Object.keys(this.emptyCoordinates).length) {
+      this.isInCheckMode = true
+      this.move('left')
+      if (this.isInCheckMode) {
+        this.move('up')
+      }
+    }
+    return
+  }
+
+  shouldNotMove(tile, lastTile, direction) {
     if (
-      (!lastTile && this.isAtWall(tile, wall, direction)) ||
+      (!lastTile && this.isAtWall(tile, direction)) ||
       (lastTile &&
         this.isAdj(tile, lastTile) &&
         !this.shouldCollapse(tile, lastTile))
@@ -117,62 +150,61 @@ export class Board {
     const column2 = this.getColumn(tile2)
     return (
       (row1 === row2 && Math.abs(column1 - column2) === 1) ||
-      (column1 === column2 && Math.abs(row1 - row2))
+      (column1 === column2 && Math.abs(row1 - row2) === 1)
     )
   }
 
-  moveWall(direction, wall) {
+  moveWall(direction) {
+    this.lastWall = this.wall
     if (direction === 'up' || direction === 'left') {
-      return wall++
+      this.wall++
+    } else {
+      this.wall--
     }
-    return wall--
   }
 
   isVertical(direction) {
     return direction === 'up' || direction === 'down'
   }
 
-  wallIsStillInitial(wall, direction) {
-    return wall === this.getInitialWall(direction)
-  }
-
-  getLastTile(currentLine, wall, direction) {
-    if (this.wallIsStillInitial(wall, direction)) {
+  getLastTile(currentLine, direction) {
+    if (this.lastWall < 0) {
       return null
     }
     let coord
     if (this.isVertical(direction)) {
-      coord = this.getCoord({row: wall, column: currentLine})
+      coord = this.getCoord({ row: this.lastWall, column: currentLine })
     } else {
-      coord = this.getCoord({row: currentLine, column: wall})
+      coord = this.getCoord({ row: currentLine, column: this.lastWall })
     }
     return {
       key: coord,
-      value: this.coordinates[coord],
-      isDerived: false,
+      value: this.coordinates[coord].value,
+      isDerived: this.coordinates[coord].isDerived
     }
   }
 
   collapse(sourceTile, destTile) {
-    this.removeTile(sourceTile.key)
-    this.coordinates[destTile.key] *= 2
-    this.score += this.coordinates[destTile.key]
+    this.removeTile(sourceTile)
+    this.coordinates[destTile.key].value *= 2
+    this.coordinates[destTile.key].isDerived = true
+    this.score += this.coordinates[destTile.key].value
   }
 
   shouldCollapse(tile, lastTile) {
     return lastTile && lastTile.value === tile.value && !lastTile.isDerived
   }
 
-  removeTile(coord) {
-    delete this.coordinates[coord]
-    this.emptyCoordinates[coord] = {key: coord, value: undefined}
+  removeTile(tile) {
+    delete this.coordinates[tile.key]
+    this.emptyCoordinates[tile.key] = { key: tile.key, value: undefined }
   }
 
-  isAtWall(tile, wall, direction) {
+  isAtWall(tile, direction) {
     if (this.isVertical(direction)) {
-      return this.getRow(tile) === wall
+      return this.getRow(tile) === this.wall
     } else {
-      return this.getColumn(tile) === wall
+      return this.getColumn(tile) === this.wall
     }
   }
 
@@ -184,23 +216,25 @@ export class Board {
     return JSON.parse(tile.key).column
   }
 
-  pushToWall(tile, wall, direction) {
-    if (this.isAtWall(tile, wall, direction)) {
+  pushToWall(tile, direction) {
+    if (this.isAtWall(tile, direction)) {
       throw new Error('Tile is already at wall')
     } else {
       let coord
       if (this.isVertical(direction)) {
-        coord = this.getCoord({row: wall, column: this.getColumn(tile)})
+        coord = this.getCoord({ row: this.wall, column: this.getColumn(tile) })
       } else {
-        coord = this.getCoord({row: this.getRow(tile), column: wall})
+        coord = this.getCoord({ row: this.getRow(tile), column: this.wall })
       }
-      this.coordinates[coord] = {key: coord, value: tile.value}
+      this.coordinates[coord] = { key: coord, value: tile.value }
+      delete this.emptyCoordinates[coord]
       this.removeTile(tile)
+      this.moveWall(direction)
     }
   }
 
   getValue(i, j) {
-    const tile = this.coordinates[this.getCoord({row: i, column: j})]
+    const tile = this.coordinates[this.getCoord({ row: i, column: j })]
     if (!tile) {
       return 0
     }

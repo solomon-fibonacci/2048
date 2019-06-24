@@ -1,4 +1,4 @@
-import {Board} from './index.js'
+import { Board } from './index.js'
 
 class GameUI {
   constructor(n, domId) {
@@ -8,7 +8,7 @@ class GameUI {
     })
     this.boardElement = document.getElementById(domId)
     this.render()
-    this.handleKeypress = (evt) => {
+    this.handleKeypress = evt => {
       switch (evt.keyCode) {
         case 37:
           this.move('left')
@@ -46,13 +46,15 @@ class GameUI {
 
     const rows = tableChild('tr')
     const table = `<table>${rows}</table>`
-    this.boardElement.innerHTML = `${
-      this.boardElement.innerHTML
-    }<br><br><div>${direction}<br>scrore: ${this.board.score}</div>${table}`
+    this.boardElement.innerHTML = `<br><br><div>${direction}<br>score: ${
+      this.board.score
+    }</div>${table}`
+    window.scrollTo(0, document.body.scrollHeight)
   }
 
   move(direction) {
     this.board.move(direction)
+
     this.render(direction)
   }
 }
