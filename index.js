@@ -6,6 +6,9 @@ export class Board {
     this.gameOverCallback = callback
     this.size = n
     this.score = 0
+    this.gameIsOver = false
+    this.maxPulseChecks = 2
+    this.pulseChecks = 0
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
         const rc = { row: i, column: j }
@@ -35,10 +38,8 @@ export class Board {
     while (n) {
       const keys = Object.keys(this.emptyCoordinates)
       const randomKey = keys[Math.floor(Math.random() * keys.length)]
-      console.log(randomKey)
       this.coordinates[randomKey] = {
         key: randomKey,
-
         value: 2,
         isDerived: false
       }
@@ -52,6 +53,7 @@ export class Board {
   }
 
   gameOver() {
+    this.gameIsOver = true
     this.gameOverCallback(this)
   }
 
@@ -73,6 +75,9 @@ export class Board {
   }
 
   move(direction) {
+    if (this.gameIsOver) {
+      return
+    }
     if (!this.validMoves.includes(direction)) {
       throw new Error('Invalid move')
     }
@@ -90,30 +95,29 @@ export class Board {
           if (this.shouldNotMove(tile, lastTile, direction)) {
             this.moveWall(direction)
           } else {
-            if (!this.touched) {
-              if (this.isInCheckMode) {
-                this.isInCheckMode = false
-                return
-              }
-              this.touched = true
+            if (this.isInCheckMode) {
+              this.isInCheckMode = false
+              this.pulseChecks = 0
+              return
             }
             if (this.shouldCollapse(tile, lastTile)) {
               this.collapse(tile, lastTile)
             } else {
               this.pushToWall(tile, direction)
             }
+            this.touched = true
           }
         }
       }
     }
-    if (this.isInCheckMode) {
+    if (
+      !this.touched &&
+      this.isInCheckMode &&
+      this.pulseChecks === this.maxPulseChecks
+    ) {
       this.gameOver()
-    } else {
-      if (this.touched) {
-        this.addNewTile()
-      } else {
-        this.checkPulse()
-      }
+    } else if (this.touched && !this.isInCheckMode) {
+      this.addNewTile()
     }
 
     return { occupied: this.coordinates, empty: this.emptyCoordinates }
@@ -123,6 +127,7 @@ export class Board {
     this.coordBackup = Object.assign({}, this.coordinates)
     if (!Object.keys(this.emptyCoordinates).length) {
       this.isInCheckMode = true
+      this.pulseChecks++
       this.move('left')
       if (this.isInCheckMode) {
         this.move('up')
