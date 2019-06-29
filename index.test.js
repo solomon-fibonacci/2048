@@ -14,6 +14,17 @@ describe('Boards initializes properly', () => {
     board.move('left')
     expect(Object.keys(board.coordinates).length).toBeGreaterThanOrEqual(2)
   })
+  it('creates unique coordinates for newly added tiles', () => {
+    const board = new Board(4)
+    let keys=Object.keys(board.coordinates)
+    expect(board.coordinates[keys[0]].index===board.coordinates[keys[1]].index).toBeFalsy()
+  })
+  it('removes corresponding empty coorinates for newly created tiles', () => {
+    const board = new Board(4)
+    let keys=Object.keys(board.coordinates)
+    expect(board.emptyCoordinates[keys[0]].toBeUndefined())
+    expect(board.emptyCoordinates[keys[1]].toBeUndefined())
+  })
 })
 
 describe('Impossible move does not create new tile', () => {
@@ -114,4 +125,38 @@ describe('Impossible move does not create new tile', () => {
     board.move('left')
     expect(Object.keys(board.coordinates).length).toBeEqualTo(1)
   })
+})
+
+describe('Tiles collapse as expected', () => {
+  it('increases score by combined value of tiles collapsed in upwards or downwards direction', () => {
+    const board = new Board(3)
+    board.removeTile(Object.keys(board.coordinates)[0])
+    board.removeTile(Object.keys(board.coordinates)[0])
+    board.coordinates['0,0']={key:'0,0',value:2}
+    delete board.emptyCoordinates['0,0']
+    board.coordinates['1,0']={key:'1,0',value:2}
+    delete board.emptyCoordinates['1,0']
+    board.coordinates['2,0']={key:'2,0',value:4}
+    delete board.emptyCoordinates['2,0']
+    board.move('down')
+    expect(board.score).toBe(4)
+    board.move('down')
+    expect(board.score).toBe(12)
+  })
+  it('increases score by combined value of tiles collapsed in leftwards or rightwards direction', () => {
+    const board = new Board(3)
+    board.removeTile(Object.keys(board.coordinates)[0])
+    board.removeTile(Object.keys(board.coordinates)[0])
+    board.coordinates['0,0']={key:'0,0',value:2}
+    delete board.emptyCoordinates['0,0']
+    board.coordinates['0,1']={key:'0,1',value:2}
+    delete board.emptyCoordinates['0,1']
+    board.coordinates['0,2']={key:'0,2',value:4}
+    delete board.emptyCoordinates['0,2']
+    board.move('left')
+    expect(board.score).toBe(4)
+    board.move('right')
+    expect(board.score).toBe(12)
+  })
+
 })
