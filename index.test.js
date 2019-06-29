@@ -132,12 +132,15 @@ describe('Tiles collapse as expected', () => {
     const board = new Board(3)
     board.removeTile(Object.keys(board.coordinates)[0])
     board.removeTile(Object.keys(board.coordinates)[0])
-    board.coordinates['0,0']={key:'0,0',value:2}
-    delete board.emptyCoordinates['0,0']
-    board.coordinates['1,0']={key:'1,0',value:2}
-    delete board.emptyCoordinates['1,0']
-    board.coordinates['2,0']={key:'2,0',value:4}
-    delete board.emptyCoordinates['2,0']
+    const topCoord = '{"row":0,"column":0}'
+    board.coordinates[topCoord]={key:topCoord,value:2}
+    delete board.emptyCoordinates[topCoord]
+    const midCoord = '{"row":1,"column":0}'
+    board.coordinates[midCoord]={key:midCoord,value:2}
+    delete board.emptyCoordinates[midCoord]
+    const downCoord = '{"row":2,"column":0}'
+    board.coordinates[downCoord]={key:downCoord,value:4}
+    delete board.emptyCoordinates[downCoord]
     board.move('down')
     expect(board.score).toBe(4)
     board.move('down')
@@ -147,12 +150,15 @@ describe('Tiles collapse as expected', () => {
     const board = new Board(3)
     board.removeTile(Object.keys(board.coordinates)[0])
     board.removeTile(Object.keys(board.coordinates)[0])
-    board.coordinates['0,0']={key:'0,0',value:2}
-    delete board.emptyCoordinates['0,0']
-    board.coordinates['0,1']={key:'0,1',value:2}
-    delete board.emptyCoordinates['0,1']
-    board.coordinates['0,2']={key:'0,2',value:4}
-    delete board.emptyCoordinates['0,2']
+    const leftCoord = '{"row":0,"column":0}'
+    board.coordinates[leftCoord]={key:leftCoord,value:2}
+    delete board.emptyCoordinates[leftCoord]
+    const midCoord = '{"row":0,"column":1}'
+    board.coordinates[midCoord]={key:midCoord,value:2}
+    delete board.emptyCoordinates[midCoord]
+    const downCoord = '{"row":0,"column":2}'
+    board.coordinates[rightCoord]={key:rightCoord,value:4}
+    delete board.emptyCoordinates[downCoord]
     board.move('left')
     expect(board.score).toBe(4)
     board.move('right')
